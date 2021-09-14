@@ -43,6 +43,9 @@
 #include "rom/basic-1_memo7.inc"
 #include "rom/basic-128_memo7.inc"
 
+#include "emu2413/emu2413.h" //BRO
+#include "emu76489/emu76489.h" //BRO
+
 // Screen is refreshed every VBL_NUMBER_MAX vertical blanking intervals.
 // Must be 1 to produce a new frame each time retro_run() is called.
 // If > 1, the virtual keyboard will blink if transparency (alpha) != 255.
@@ -52,6 +55,11 @@
 #define PALETTE_SIZE    32
 // Sound level on 6 bits
 #define MAX_SOUND_LEVEL 0x3f
+#define AUDIOCHIP_CLK 3579545 //BRO
+#define AUDIO_RATE 22050 //BRO
+
+OPLL *opll; //BRO
+SNG *sng; //BRO
 
 typedef struct
 {
@@ -107,8 +115,8 @@ static int vblnumber;       //compteur du nombre de vbl avant affichage
 static int displayflag;     //indicateur pour l'affichage
 int bordercolor;            //couleur de la bordure de l'écran
 //divers
-static int sound;                  //niveau du haut-parleur
-static int mute;                   //mute flag
+static int sound;           //niveau du haut-parleur
+static int mute;            //mute flag
 static int timer6846;       //compteur du timer 6846
 static int latch6846;       //registre latch du timer 6846
 static int keyb_irqcount;   //nombre de cycles avant la fin de l'irq clavier
@@ -200,7 +208,12 @@ E7C7= registre temporisateur d'octet de poids faible (TLSB)
 
 int16_t GetAudioSample(void)
 {
-  return mute ? 0 : (sound * 65535 / MAX_SOUND_LEVEL) - (65536 / 2);
+  int16_t out;
+
+  out = mute ? 0 : (sound * 21845 / MAX_SOUND_LEVEL) - 10749; //BRO
+  out += OPLL_calc(opll) * 2 + SNG_calc(sng); //BRO
+  
+  return out;
 }
 
 void SetThomsonModel(ThomsonModel model)
@@ -589,6 +602,10 @@ void Joysemul(JoystickAxis axis, bool isOn)
 // Initialisation of the emulated computer ////////////////////////////////////
 void Initprog(void)
 {
+  opll = OPLL_new(AUDIOCHIP_CLK, AUDIO_RATE); //BRO
+  sng = SNG_new(AUDIOCHIP_CLK, AUDIO_RATE); //BRO
+  SNG_set_quality (sng, 1); //BRO
+
   int i;
   // keyboards's keys released
   for(i = 0; i < KEYBOARDKEY_MAX; i++) touche[i] = 0x80;
@@ -732,6 +749,9 @@ void Hardreset(void)
   mute = 0;
   penbutton = 0;
   capslock = 1;
+
+  OPLL_reset(opll); //BRO
+  SNG_reset(sng); //BRO
 }
 
 // Timer control /////////////////////////////////////////////////////////////
@@ -806,6 +826,7 @@ static void MputTo(unsigned short a, char c)
 #ifdef THEODORE_DASM
   debug_mem_write(a);
 #endif
+
   switch(a >> 12)
   {
     case 0x0: case 0x1:
@@ -859,6 +880,9 @@ static void MputTo(unsigned short a, char c)
         case 0xe7e5: port[0x25] = c; selectRamBankTo(); return;
         case 0xe7e6: port[0x26] = c; selectRomBank(); return;
         case 0xe7e7: port[0x27] = c; selectRamBankTo(); return;
+        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; //BRO
+        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; //BRO
+        case 0xe7ff: SNG_writeIO(sng, c); return; //BRO
         default: return;
       }
       return;
@@ -972,6 +996,7 @@ static void MputTo7(unsigned short a, char c)
 #ifdef THEODORE_DASM
   debug_mem_write(a);
 #endif
+
   switch(a >> 12)
   {
     // 0000->3fff: Cartouche enfichable MEMO7
@@ -1028,6 +1053,9 @@ static void MputTo7(unsigned short a, char c)
         // e7d0->e7df: Controlleur disque
         // e7e0->e7e3: PIA 6821 (RS232/Parellel interfaces)
         // e7e4->e7ff: Libre pour extension PIA et ACIA
+        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; //BRO
+        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; //BRO
+        case 0xe7ff: SNG_writeIO(sng, c); return; //BRO
         default: return;
       }
       return;
@@ -1155,6 +1183,7 @@ static void MputMo(unsigned short a, char c)
 #ifdef THEODORE_DASM
   debug_mem_write(a);
 #endif
+
   switch(a >> 12)
   {
     case 0x0: case 0x1: ramvideo[a] = c; return;
@@ -1186,6 +1215,9 @@ static void MputMo(unsigned short a, char c)
         // A7E4->A7E7 : Gate Mode Page Registers
         case 0xa7e4: if (rom->is_mo6) { port[0x24] = c & 0x01; } return;
         case 0xa7e5: if (rom->is_mo6) { port[0x25] = c; selectRamBankMo6(); } return;
+        case 0xa7fc: OPLL_writeIO(opll, 0, c); return; //BRO
+        case 0xa7fd: OPLL_writeIO(opll, 1, c); return; //BRO
+        case 0xa7ff: SNG_writeIO(sng, c); return; //BRO
       }
       return;
     case 0xb: case 0xc: case 0xd: case 0xe:

@@ -22,3 +22,5 @@ SOURCES_C += $(CORE_DIR)/src/vkeyb/ui.c
 SOURCES_C += $(CORE_DIR)/src/vkeyb/vkeyb.c
 SOURCES_C += $(CORE_DIR)/src/vkeyb/vkeyb_config.c
 SOURCES_C += $(CORE_DIR)/src/vkeyb/vkeyb_layout.c
+SOURCES_C += $(CORE_DIR)/src/emu2413/emu2413.c
+SOURCES_C += $(CORE_DIR)/src/emu76489/emu76489.c
