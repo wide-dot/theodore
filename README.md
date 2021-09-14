@@ -1,13 +1,10 @@
-[:gb:](https://github.com/Zlika/theodore/blob/master/README.md)
-[:fr:](https://github.com/Zlika/theodore/blob/master/README-FR.md)
-
 Theodore - Thomson MO/TO emulator
 ====================================
 
-![Build status](https://github.com/Zlika/theodore/workflows/CI/badge.svg)
-[![Libretro Build Status](https://img.shields.io/gitlab/pipeline/libretro/theodore/master?gitlab_url=https%3A%2F%2Fgit.libretro.com)](https://git.libretro.com/libretro/theodore/-/pipelines)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/15677/badge.svg)](https://scan.coverity.com/projects/zlika-theodore)
-[![GitHub tag](https://img.shields.io/github/tag/Zlika/theodore.svg)](https://github.com/Zlika/theodore/releases)
+This version is a Fork that add support for YM2413 and SN76489 sound cards.
+To build the sound cards, please go to :
+
+https://github.com/dinoflorenzi/THOMSON-MO-TO-SOUNDCARD
 
 This is a [libretro](https://github.com/libretro) core for emulation of [Thomson computers](https://en.wikipedia.org/wiki/Thomson_computers). It is based on Daniel Coulom's [DCTO8D](http://dcto8.free.fr/), [DCTO9P](http://dcto9p.free.fr/) and [DCMO5](http://dcmo5.free.fr/) emulators, and supports the following models: TO7, TO7/70, TO8, TO8D, TO9, TO9+, MO5, MO6 and also the Olivetti Prodest PC128 (a rebranded MO6 for the Italian market).
 
