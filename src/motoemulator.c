@@ -117,6 +117,10 @@ int bordercolor;            //couleur de la bordure de l'écran
 //divers
 static int sound;           //niveau du haut-parleur
 static int mute;            //mute flag
+static int dac_zcount = 138;  //permet de savoir si le DAC est inactif
+static int dac_zval = 0;    //valeur du dac en inactivite
+static int dac_offset = 0;  //valeur offset pour centrage du signal dac
+#define DAC_TIMEOUT 138
 static int timer6846;       //compteur du timer 6846
 static int latch6846;       //registre latch du timer 6846
 static int keyb_irqcount;   //nombre de cycles avant la fin de l'irq clavier
@@ -210,9 +214,26 @@ int16_t GetAudioSample(void)
 {
   int16_t out;
 
-  out = mute ? 0 : (sound * 21845 / MAX_SOUND_LEVEL) - 10749; //BRO
-  out += OPLL_calc(opll) * 2 + SNG_calc(sng); //BRO
-  
+  // Si le DAC est inactif pendant un certain temps, le signal est remis a 0
+  if (sound == dac_zval)
+  {
+     dac_zcount++;
+  } else {
+     dac_zcount = 0;
+  }
+
+  if (dac_zcount >= DAC_TIMEOUT)
+  {
+     dac_offset = (sound * 21845 / MAX_SOUND_LEVEL);
+  } else {
+     dac_offset = 10749;
+  }
+
+  dac_zval = sound;
+
+  out = mute ? 0 : (sound * 21845 / MAX_SOUND_LEVEL) - dac_offset; // Amplitude du DAC/3
+  out += OPLL_calc(opll) * 4 + SNG_calc(sng) * 2;
+
   return out;
 }
 
