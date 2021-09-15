@@ -59,6 +59,7 @@ ifeq ($(platform), unix)
 	fpic := -fPIC
 	SHARED := -shared -Wl,-version-script=link.T -Wl,-no-undefined
 	ENABLE_GCC_SECURITY_FLAGS = 1
+	LDFLAGS += -lm
 ifeq ($(shell uname -s), Haiku)
 	LDFLAGS += -lroot
 endif
