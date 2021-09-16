@@ -750,7 +750,7 @@ static bool load_file(const char *filename)
       }
       break;
     case MEDIA_CARTRIDGE:
-      LoadMemo(filename);
+      LoadCart(filename);
       break;
     default:
       LOG_ERROR("Unknown file type for file %s.\n", filename);
@@ -816,7 +816,7 @@ void retro_unload_game(void)
 {
   UnloadTape();
   UnloadFloppy();
-  UnloadMemo();
+  UnloadCart();
 }
 
 unsigned retro_get_region(void)
