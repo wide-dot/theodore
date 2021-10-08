@@ -51,6 +51,8 @@ static bool is_to = true;
 
 static int k7octet = 0;
 static int k7bit = 0;
+int activity = 0;
+
 
 // 6809 registers
 #define CC dc6809_cc
@@ -103,6 +105,10 @@ static void Diskerror(int n)
 // This function emulates the DKCO function of the monitor with DK.OPC=2.
 static void Readsector(void)
 {
+  // FX : for activity led
+  activity = 1;
+ 
+
   char buffer[SECTOR_SIZE];
   int i, j, u, p, s;
 

@@ -24,6 +24,7 @@
 
 #include "boolean.h"
 
+
 // Set the MO/TO mode: true = TO, false = MO
 void SetModeTO(bool isTO);
 

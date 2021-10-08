@@ -621,6 +621,37 @@ static void check_variables(void)
 #endif
 }
 
+
+
+// FX : display_activity_led()
+
+static int activity_frames = 0;
+extern int activity;
+
+void display_activity_led(void)
+{
+  if (activity == 1 && activity_frames < 60)
+  {
+	  int i,j;
+	  for(j = 0 ; j < 10  ; j++)
+	  {
+		  for(i = 0 ; i < 10 ; i++)
+		  {
+			  video_buffer[i+(j*XBITMAP)] = 0x5A6B3E;
+		  }
+	  }
+      activity_frames++;
+  }
+  else
+  {
+      activity = 0;
+      activity_frames = 0;
+  }
+
+}
+
+// FX : end
+
 void retro_run(void)
 {
   bool updated;
@@ -665,8 +696,13 @@ void retro_run(void)
   }
 
   audio_batch_cb(audio_stereo_buffer, AUDIO_SAMPLE_PER_FRAME);
+
+  display_activity_led(); // FX
+
   video_cb(video_buffer, XBITMAP, YBITMAP, PITCH);
 }
+
+
 
 size_t retro_serialize_size(void)
 {
