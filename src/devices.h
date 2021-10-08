@@ -23,6 +23,7 @@
 #define __DEVICES_H
 
 #include "boolean.h"
+#include "motoemulator.h"
 
 
 // Set the MO/TO mode: true = TO, false = MO
@@ -42,15 +43,15 @@ void LoadSap(const char *filename);
 // Load a tape
 void LoadTape(const char *filename);
 // Load a memo7 cartridge
-void LoadMemo(const char *filename);
+void LoadCart(const char *filename);
 // Load a memo7 cartridge from an array
-void LoadMemoFromArray(const char *rom, unsigned int rom_size);
+void LoadCartFromArray(const char *rom, unsigned int rom_size);
 // Unload the floppy disk
 void UnloadFloppy(void);
 // Unload the tape
 void UnloadTape(void);
 // Unload the cartridge
-void UnloadMemo(void);
+void UnloadCart(void);
 // Rewind the tape
 void RewindTape(void);
 

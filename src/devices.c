@@ -298,32 +298,40 @@ static void ReadBitTape(void)
   Mputc(0x2045, octet); k7bit >>= 1;
 }
 
-void UnloadMemo(void)
+void UnloadCart(void)
 {
   carflags = 0;
   Hardreset();
 }
 
-void LoadMemo(const char *filename)
+void LoadCart(const char *filename)
 {
   FILE *fp = NULL;
   int i, c, carsize;
-  // Open the memo7 file
+
+  // Open the rom file
   fp = fopen(filename, "rb");
-  if(fp == NULL) {UnloadMemo(); return;}
+  if(fp == NULL) {UnloadCart(); return;}
+
   // Loading
   carsize = 0;
   memset(car, 0, CARTRIDGE_MEM_SIZE);
   while(((c = fgetc(fp)) != EOF) && (carsize < CARTRIDGE_MEM_SIZE)) car[carsize++] = c;
   fclose(fp);
   for(i = 0; i < 0xc000; i++) ram[i] = -((i & 0x80) >> 7);
-  cartype = 0; // cartridge <= 16 Ko
-  if(carsize > 0x4000) cartype = 1;   // bank switch system
+
+  cartype = 0;  // cartridge <= 16 Ko
+  if (carsize > 0x4000 && (carsize <= MEMO7_MEM_SIZE || currentModel == MO5 || currentModel == MO6 || currentModel == PC128)) {
+     cartype = 1; // memo7 bank switch system
+  } else if (carsize > MEMO7_MEM_SIZE) {
+     cartype = 3; // T.2 bank switch system
+  } 
   carflags = 4; // cartridge enabled, write disabled, bank 0
+
   Initprog();   // init to launch the cartridge
 }
 
-void LoadMemoFromArray(const char *rom, unsigned int rom_size)
+void LoadCartFromArray(const char *rom, unsigned int rom_size)
 {
   unsigned int i, carsize;
   // Loading
@@ -335,10 +343,16 @@ void LoadMemoFromArray(const char *rom, unsigned int rom_size)
     car[carsize++] = c;
   }
   for(i = 0; i < 0xc000; i++) ram[i] = -((i & 0x80) >> 7);
-  cartype = 0; // cartridge <= 16 Ko
-  if(carsize > 0x4000) cartype = 1;   // bank switch system
-  carflags = 4; // cartridge enabled, write disabled, bank 0
-  Initprog();   // init to launch the cartridge
+
+  cartype = 0;    // cartridge <= 16 Ko
+  if (carsize > 0x4000 && (carsize <= MEMO7_MEM_SIZE || currentModel == MO5 || currentModel == MO6 || currentModel == PC128)) {
+     cartype = 1; // memo7 bank switch system
+  } else if (carsize > MEMO7_MEM_SIZE) {
+     cartype = 3; // T.2 bank switch system
+  } 
+  carflags = 4;   // cartridge enabled, write disabled, bank 0
+
+  Initprog();     // init to launch the cartridge
 }
 
 // Read the buttons of the mouse

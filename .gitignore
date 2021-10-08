@@ -2,6 +2,8 @@
 /src/.dirstamp
 /src/*.o
 /src/vkeyb/*.o
+/src/emu2413/*.o
+/src/emu76489/*.o
 
 *.so
 libs

@@ -28,7 +28,8 @@
 // Size of RAM (512K)
 #define RAM_SIZE 0x80000
 // Size of cartridge memory space (4x16K)
-#define CARTRIDGE_MEM_SIZE 0x10000
+#define MEMO7_MEM_SIZE 0x10000
+#define CARTRIDGE_MEM_SIZE 0x200000
 // Size of I/O ports space
 #define IO_MEM_SIZE 0x40
 
@@ -66,6 +67,7 @@ typedef enum { JOY0_UP, JOY0_DOWN, JOY0_LEFT, JOY0_RIGHT,
                JOY0_FIRE, JOY1_FIRE } JoystickAxis;
 
 typedef enum { TO8, TO8D, TO9, TO9P, MO5, MO6, PC128, TO7, TO7_70 } ThomsonModel;
+extern ThomsonModel currentModel;
 
 // Returns the current level of the speaker as a signed 16-bit integer
 int16_t GetAudioSample(void);
@@ -83,6 +85,8 @@ void Hardreset(void);
 void SetThomsonModel(ThomsonModel model);
 // Gets the currently emulated Thomson model
 ThomsonModel GetThomsonModel(void);
+// Decode les commandes T.2
+void decodeT2Cmd(unsigned short a, char c);
 
 // The following functions are used for libretro's save states feature.
 // Returns the amount of data required to serialize the whole state of the emulator.

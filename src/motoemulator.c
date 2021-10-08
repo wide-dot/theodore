@@ -1,4 +1,4 @@
-/*
+ /*
  * This file is part of theodore (https://github.com/Zlika/theodore),
  * a Thomson emulator based on Daniel Coulom's DCTO8D/DCTO9P/DCMO5
  * emulators (http://dcmoto.free.fr/).
@@ -43,8 +43,8 @@
 #include "rom/basic-1_memo7.inc"
 #include "rom/basic-128_memo7.inc"
 
-#include "emu2413/emu2413.h" //BRO
-#include "emu76489/emu76489.h" //BRO
+#include "emu2413/emu2413.h" 
+#include "emu76489/emu76489.h" 
 
 // Screen is refreshed every VBL_NUMBER_MAX vertical blanking intervals.
 // Must be 1 to produce a new frame each time retro_run() is called.
@@ -55,11 +55,11 @@
 #define PALETTE_SIZE    32
 // Sound level on 6 bits
 #define MAX_SOUND_LEVEL 0x3f
-#define AUDIOCHIP_CLK 3579545 //BRO
-#define AUDIO_RATE 22050 //BRO
+#define AUDIOCHIP_CLK 3579545 
+#define AUDIO_RATE 22050 
 
-OPLL *opll; //BRO
-SNG *sng; //BRO
+OPLL *opll; 
+SNG *sng; 
 
 typedef struct
 {
@@ -83,7 +83,7 @@ static SystemRom ROM_PC128 = { pc128_basic128_rom, pc128_basic128_patch, pc128_b
 static SystemRom ROM_TO770 = { NULL, NULL, to770_monitor_rom, to770_monitor_patch, NULL, NULL, false, false };
 static SystemRom ROM_TO7 = { NULL, NULL, to7_monitor_rom, to7_monitor_patch, NULL, NULL, false, false };
 
-static ThomsonModel currentModel = TO8;
+ThomsonModel currentModel = TO8;
 static SystemRom *rom = &ROM_TO8;
 
 // memory
@@ -99,8 +99,10 @@ static char *rambank;       //pointeur banque ram utilisateur
 static char *romsys;        //pointeur rom systeme
 static char *rombank;       //pointeur banque rom ou cartouche
 //flags cartouche
-int cartype;         //type de cartouche (0=simple, 1=switch bank, 2=os-9)
+int cartype;         //type de cartouche (0=simple, 1=switch bank, 2=os-9, 3=T.2)
 int carflags = 0;    //bits0,1,4=bank, 2=cart-enabled, 3=write-enabled
+int t2page = 0;      //numero de page (0x00-x7f)
+int t2Cmd0Cnt = 0;   //compteur de sequence pour commande T.2 : Commutation de page
 //keyboard, joysticks, mouse
 static int touche[KEYBOARDKEY_MAX]; //etat touches
 static int capslock;         //1=capslock, 0 sinon
@@ -266,11 +268,11 @@ void SetThomsonModel(ThomsonModel model)
         break;
       case TO7:
         rom = &ROM_TO7;
-        LoadMemoFromArray(basic_1_memo7_rom, basic_1_memo7_rom_len);
+        LoadCartFromArray(basic_1_memo7_rom, basic_1_memo7_rom_len);
         break;
       case TO7_70:
         rom = &ROM_TO770;
-        LoadMemoFromArray(basic_1_memo7_rom, basic_1_memo7_rom_len);
+        LoadCartFromArray(basic_1_memo7_rom, basic_1_memo7_rom_len);
         break;
       default:
         return;
@@ -454,7 +456,11 @@ static void selectRomBankTo(void)
     }
     else
     {
-      rombank = car + ((carflags & 3) << 14);
+      if (cartype == 3) {
+         rombank = car + (t2page << 14);
+      } else {
+         rombank = car + ((carflags & 3) << 14);
+      }
     }
   }
   else // TO9
@@ -478,7 +484,11 @@ static void selectRomBankTo(void)
         rombank = rom->basic + (nrombank << 14);
         break;
       case 3: // cartridge
-        rombank = car + ((carflags & 3) << 14);
+        if (cartype == 3) {
+           rombank = car + (t2page << 14);
+        } else {
+           rombank = car + ((carflags & 3) << 14);
+        }
         break;
       default: break;
     }
@@ -487,7 +497,11 @@ static void selectRomBankTo(void)
 
 static void selectRomBankTo7(void)
 {
-  rombank = car + ((carflags & 3) << 14);
+  if (cartype == 3) {
+     rombank = car + (t2page << 14);
+  } else {
+     rombank = car + ((carflags & 3) << 14);
+  }
 }
 
 static void selectRomBankMo5(void)
@@ -623,9 +637,16 @@ void Joysemul(JoystickAxis axis, bool isOn)
 // Initialisation of the emulated computer ////////////////////////////////////
 void Initprog(void)
 {
-  opll = OPLL_new(AUDIOCHIP_CLK, AUDIO_RATE); //BRO
-  sng = SNG_new(AUDIOCHIP_CLK, AUDIO_RATE); //BRO
-  SNG_set_quality (sng, 1); //BRO
+  // Sound Cards init
+  opll = OPLL_new(AUDIOCHIP_CLK, AUDIO_RATE); 
+  sng = SNG_new(AUDIOCHIP_CLK, AUDIO_RATE); 
+  OPLL_reset(opll); 
+  SNG_reset(sng); 
+  SNG_set_quality (sng, 1); 
+
+  // MegaRom T.2 init
+  t2page = 0;
+  t2Cmd0Cnt = 0;
 
   int i;
   // keyboards's keys released
@@ -770,9 +791,8 @@ void Hardreset(void)
   mute = 0;
   penbutton = 0;
   capslock = 1;
-
-  OPLL_reset(opll); //BRO
-  SNG_reset(sng); //BRO
+  t2page = 0;
+  t2Cmd0Cnt = 0;
 }
 
 // Timer control /////////////////////////////////////////////////////////////
@@ -848,6 +868,8 @@ static void MputTo(unsigned short a, char c)
   debug_mem_write(a);
 #endif
 
+  decodeT2Cmd(a,c);
+
   switch(a >> 12)
   {
     case 0x0: case 0x1:
@@ -901,9 +923,9 @@ static void MputTo(unsigned short a, char c)
         case 0xe7e5: port[0x25] = c; selectRamBankTo(); return;
         case 0xe7e6: port[0x26] = c; selectRomBank(); return;
         case 0xe7e7: port[0x27] = c; selectRamBankTo(); return;
-        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; //BRO
-        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; //BRO
-        case 0xe7ff: SNG_writeIO(sng, c); return; //BRO
+        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; 
+        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; 
+        case 0xe7ff: SNG_writeIO(sng, c); return; 
         default: return;
       }
       return;
@@ -1018,6 +1040,8 @@ static void MputTo7(unsigned short a, char c)
   debug_mem_write(a);
 #endif
 
+  decodeT2Cmd(a,c);
+
   switch(a >> 12)
   {
     // 0000->3fff: Cartouche enfichable MEMO7
@@ -1074,9 +1098,9 @@ static void MputTo7(unsigned short a, char c)
         // e7d0->e7df: Controlleur disque
         // e7e0->e7e3: PIA 6821 (RS232/Parellel interfaces)
         // e7e4->e7ff: Libre pour extension PIA et ACIA
-        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; //BRO
-        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; //BRO
-        case 0xe7ff: SNG_writeIO(sng, c); return; //BRO
+        case 0xe7fc: OPLL_writeIO(opll, 0, c); return; 
+        case 0xe7fd: OPLL_writeIO(opll, 1, c); return; 
+        case 0xe7ff: SNG_writeIO(sng, c); return; 
         default: return;
       }
       return;
@@ -1236,9 +1260,9 @@ static void MputMo(unsigned short a, char c)
         // A7E4->A7E7 : Gate Mode Page Registers
         case 0xa7e4: if (rom->is_mo6) { port[0x24] = c & 0x01; } return;
         case 0xa7e5: if (rom->is_mo6) { port[0x25] = c; selectRamBankMo6(); } return;
-        case 0xa7fc: OPLL_writeIO(opll, 0, c); return; //BRO
-        case 0xa7fd: OPLL_writeIO(opll, 1, c); return; //BRO
-        case 0xa7ff: SNG_writeIO(sng, c); return; //BRO
+        case 0xa7fc: OPLL_writeIO(opll, 0, c); return; 
+        case 0xa7fd: OPLL_writeIO(opll, 1, c); return; 
+        case 0xa7ff: SNG_writeIO(sng, c); return; 
       }
       return;
     case 0xb: case 0xc: case 0xd: case 0xe:
@@ -1314,6 +1338,26 @@ static char MgetMo(unsigned short a)
     case 0xf: return romsys[a];
     default: return ramuser[a];
  }
+}
+
+void decodeT2Cmd(unsigned short a, char c)
+{
+   if (cartype != 3) return;
+
+   switch(a)
+   {
+      case 0x02aa: if (t2Cmd0Cnt == 1 && (c & 0xff) == 0x55) {t2Cmd0Cnt++; return;} // Commande Commutation de page etape 1
+                   break;
+      case 0x0555: if ((c & 0xff) == 0xf0) {t2Cmd0Cnt = 0; return;} // Sortie du mode commande
+                   if (t2Cmd0Cnt == 0 && (c & 0xff) == 0xaa) {t2Cmd0Cnt++; return;} // Commande Commutation de page etape 0
+                   if (t2Cmd0Cnt == 2 && (c & 0xff) == 0xc0) {t2Cmd0Cnt++; return;} // Commande Commutation de page etape 2
+                   if (t2Cmd0Cnt == 3) {t2Cmd0Cnt = 0; t2page = c & 0x7f; selectRomBank(); return;} // Commande Commutation de page etape 3
+                   break;
+      default: break;
+   }
+
+   t2Cmd0Cnt = 0;
+   return;
 }
 
 unsigned int toemulator_serialize_size(void)
