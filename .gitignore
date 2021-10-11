@@ -5,7 +5,7 @@
 /src/emu2413/*.o
 /src/emu76489/*.o
 
-*.so
+/*.so
 libs
 obj
 
