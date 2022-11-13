@@ -150,15 +150,21 @@ else ifeq ($(platform), qnx)
 	AR = QCC -Vgcc_ntoarmv7le
 	PLATFORM_DEFINES := -D__BLACKBERRY_QNX__ -marm -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=softfp
 
-# PSL1GHT
-else ifeq ($(platform), psl1ght)
+# Lightweight PS3 Homebrew SDK
+else ifneq (,$(filter $(platform), ps3 psl1ght))
 	HAVE_GCC_WARNINGS := 0
-	TARGET := $(TARGET_NAME)_libretro_psl1ght.a
-	CXX = $(PS3DEV)/ppu/bin/ppu-g++$(EXE_EXT)
-	CC = $(PS3DEV)/ppu/bin/ppu-gcc$(EXE_EXT)
-	AR = $(PS3DEV)/ppu/bin/ppu-ar$(EXE_EXT)
-	PLATFORM_DEFINES := -D__PSL1GHT__
+	TARGET := $(TARGET_NAME)_libretro_$(platform).a
+	CXX = $(PS3DEV)/ppu/bin/ppu-$(COMMONLV)g++$(EXE_EXT)
+	CC = $(PS3DEV)/ppu/bin/ppu-$(COMMONLV)gcc$(EXE_EXT)
+	AR = $(PS3DEV)/ppu/bin/ppu-$(COMMONLV)ar$(EXE_EXT)
+	PLATFORM_DEFINES := -D__PS3__
 	STATIC_LINKING = 1
+	ifeq ($(platform), psl1ght)
+		PLATFORM_DEFINES += -D__PSL1GHT__
+	endif
+	ifeq ($(nowarning), 1)
+		PLATFORM_DEFINES += -w
+	endif
 
 # PS2
 else ifeq ($(platform), ps2)
@@ -200,6 +206,14 @@ else ifeq ($(platform), ctr)
 	PLATFORM_DEFINES += -fomit-frame-pointer -fstrict-aliasing -ffast-math
 	STATIC_LINKING = 1
 
+# Raspberry Pi 1
+else ifeq ($(platform), rpi1)
+	TARGET := $(TARGET_NAME)_libretro.so
+	fpic := -fPIC
+	SHARED := -shared -Wl,-version-script=link.T -Wl,-no-undefined
+	PLATFORM_DEFINES += -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -ffast-math
+	PLATFORM_DEFINES += -DARM11
+
 # Raspberry Pi 2
 else ifeq ($(platform), rpi2)
 	TARGET := $(TARGET_NAME)_libretro.so
@@ -240,6 +254,22 @@ else ifeq ($(platform), rpi4_64)
 	PLATFORM_DEFINES += -mcpu=cortex-a72 -mtune=cortex-a72 -ffast-math
 	PLATFORM_DEFINES += -DARM
 
+#MIYOO
+else ifeq ($(platform), miyoo)
+   TARGET := $(TARGET_NAME)_libretro.so
+      CC = /opt/miyoo/usr/bin/arm-linux-gcc
+      CC_AS = /opt/miyoo/usr/bin/arm-linux-as
+      CXX = /opt/miyoo/usr/bin/arm-linux-g++
+      AR = /opt/miyoo/usr/bin/arm-linux-ar
+   fpic := -fPIC
+	SHARED := -shared -Wl,-version-script=link.T -Wl,-no-undefined
+   CFLAGS := -DFRONTEND_SUPPORTS_RGB565  -DLOWRES -DINLINE="inline" -DM16B
+   CFLAGS += -ffast-math -march=armv5te -mtune=arm926ej-s
+   CFLAGS += -falign-functions=1 -falign-jumps=1 -falign-loops=1
+   CFLAGS += -fomit-frame-pointer -ffast-math   
+   CFLAGS += -funsafe-math-optimizations -fsingle-precision-constant -fexpensive-optimizations
+   CFLAGS += -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops
+   
 # Windows MSVC 2003 Xbox 1
 else ifeq ($(platform), xbox1_msvc2003)
 	TARGET := $(TARGET_NAME)_libretro_xdk1.lib
