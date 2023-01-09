@@ -235,8 +235,8 @@ int16_t GetAudioSample(void)
   //dac_zval = sound;
   //old_mute = mute;
 
-  out = mute ? 0 : (sound * 21845 / MAX_SOUND_LEVEL) - dac_offset; // Amplitude du DAC/3
-  out += OPLL_calc(opll) * 4 + SNG_calc(sng) * 2;
+  out = mute ? 0 : (sound * 10922 / MAX_SOUND_LEVEL) - dac_offset; // Amplitude du DAC/3
+  out += OPLL_calc(opll) + SNG_calc(sng) * 2;
 
   return out;
 }
