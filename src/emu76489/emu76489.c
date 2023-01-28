@@ -178,12 +178,12 @@ update_output (SNG * sng)
 
   /* Noise */
   sng->noise_count += incr;
-  if (sng->noise_count & 0x100)
+  if (sng->noise_count & 0x400)
   {
     if (sng->noise_mode) /* White */
-      sng->noise_seed = (sng->noise_seed>>1) | (parity(sng->noise_seed&0x0009)<<15);
+      sng->noise_seed = (sng->noise_seed>>1) | (parity(sng->noise_seed&0x0003)<<14);
     else                 /* Periodic */
-      sng->noise_seed = (sng->noise_seed>>1) | ((sng->noise_seed&1)<<15);
+      sng->noise_seed = (sng->noise_seed>>1) | ((sng->noise_seed&1)<<14);
     
     if(sng->noise_fref)
       sng->noise_count -= sng->freq[2];
