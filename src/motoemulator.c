@@ -925,8 +925,13 @@ static void MputTo(unsigned short a, char c)
         case 0xe7e5: port[0x25] = c; selectRamBankTo(); return;
         case 0xe7e6: port[0x26] = c; selectRomBank(); return;
         case 0xe7e7: port[0x27] = c; selectRamBankTo(); return;
+        case 0xe7f4: OPLL_writeIO(opll, 0, c); return;
+        case 0xe7f5: OPLL_writeIO(opll, 1, c); return;
+        case 0xe7f6: SNG_writeIO(sng, c); return;
+        case 0xe7f7: SNG_writeIO(sng, c); return;
         case 0xe7fc: OPLL_writeIO(opll, 0, c); return; 
         case 0xe7fd: OPLL_writeIO(opll, 1, c); return; 
+        case 0xe7fe: SNG_writeIO(sng, c); return;
         case 0xe7ff: SNG_writeIO(sng, c); return; 
         default: return;
       }
