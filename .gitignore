@@ -9,6 +9,8 @@
 libs
 obj
 
+/logs
+
 .cproject
 .project
 .settings/
